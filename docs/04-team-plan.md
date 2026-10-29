@@ -5,7 +5,7 @@
 | | 👤 팀원 1 — **연결** | 👤 팀원 2 — **눈** | 👤 팀원 3 — **두뇌와 손** |
 |---|---|---|---|
 | 컨테이너 | **A gateway** + cloudflared + compose | **B vision** | **C gesture** + 그림판 렌더링 |
-| 파일 | `services/a_gateway/app/**`, `services/a_gateway/static/phone.html`, `static/board.html`(레이아웃), `docker-compose*.yml`, `.env.example`, `tools/fake_phone.py` | `services/b_vision/**`, `tools/replay_landmarks.py` | `services/c_gesture/**`, `services/a_gateway/static/board.js`, `shared/fake_hand.py`, `tools/make_samples.py` |
+| 파일 | `services/a_gateway/app/**`, `services/a_gateway/static/phone.html`, `static/board.html`(레이아웃), `docker-compose*.yml`, `.env.example`, `tools/fake_phone.py`, `tools/check_a.py` | `services/b_vision/**`, `tools/replay_landmarks.py` | `services/c_gesture/**`, `services/a_gateway/static/board.js`, `shared/fake_hand.py`, `tools/make_samples.py` |
 | 핵심 과제 | QR 페어링·토큰, 폰 카메라 → WS, 최신 프레임 슬롯, B·C 호출 조율, 재접속, 통계 | MediaPipe CPU 추론 속도(목표 < 35ms), 검출 안정성(조명·거리), 세션별 추적 인스턴스 | 손가락 판정 규칙, 스무딩·디바운스·상태 머신, 그리기 명령 → 캔버스(획·지우개·undo·커서) |
 | 계약 | §2~§4 (board·phone ↔ A) | §6 (A ↔ B) | §5 (그리기 명령), §7 (A ↔ C) |
 | 상대 없이 개발 | B를 `VISION_BACKEND=mock`으로 | `replay_landmarks.py`로 웹캠 → B 직접 호출 | `shared/samples/`, 단위 테스트, mock B로 전체 띄워 board 확인 |
@@ -47,6 +47,7 @@ feat/gesture    ●──●──●─────────●──●─�
 ```bash
 VISION_BACKEND=mock docker compose up -d --build     # B가 가짜 손을 돌려줌
 python tools/fake_phone.py --phone-url "<그림판 QR 아래 주소>"   # 폰 없이 프레임 송출
+python tools/check_a.py                                         # 통합 체크리스트(§5) 중 A 항목 자동 점검
 ```
 mock B는 **검지가 원을 그리고 3초마다 draw ↔ hover로 바뀌는** 손을 돌려준다. 그림판에 점선 원이 그려지면 A가 정상이다.
 

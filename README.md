@@ -123,6 +123,7 @@ flowchart LR
 # 팀원 1: B를 가짜 손으로 바꾸고, 폰 없이 프레임 송출
 VISION_BACKEND=mock docker compose up -d --build
 python tools/fake_phone.py --phone-url "<QR 아래 주소>"
+python tools/check_a.py                               # A 통합 체크리스트 자동 점검
 
 # 팀원 2: B·C 포트를 열고 웹캠 → B → C 직접 호출
 docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build b-vision c-gesture
@@ -147,5 +148,5 @@ python tools/make_samples.py && python -m pytest tests
 | `services/a_gateway/static/` | `phone.html`(1), `board.html`(레이아웃 1), `board.js`(렌더링 3) | 1·3 |
 | `services/b_vision/app/` | `main.py`(`/v1/detect`), `detector.py`(MediaPipe / mock) | 2 |
 | `services/c_gesture/app/` | `rules.py`(손가락 판정), `filters.py`(One Euro), `state.py`(상태 머신), `main.py` | 3 |
-| `tools/` | `fake_phone.py`(1), `replay_landmarks.py`(2), `make_samples.py`(3) | |
+| `tools/` | `fake_phone.py`·`check_a.py`(1), `replay_landmarks.py`(2), `make_samples.py`(3) | |
 | `docker-compose.yml`, `docker-compose.dev.yml`, `.env.example` | 실행 설정 (환경변수 설명: [02-containers.md](docs/02-containers.md)) | 1 |

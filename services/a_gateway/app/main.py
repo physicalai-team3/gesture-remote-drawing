@@ -192,7 +192,8 @@ async def ws_phone(ws: WebSocket, s: str, t: str = ""):
                 break
             if msg.get("bytes") is not None:
                 data = msg["bytes"]
-                if len(data) > MAX_FRAME_BYTES:
+                if len(data) > MAX_FRAME_BYTES:  # 거부해도 ack 는 보낸다: 안 보내면 폰 inflight 가 줄지 않아 송출이 멈춘다
+                    await ws.send_json({"type": "ack", "seq": None, "rejected": "too_large"})
                     continue
                 frame = sess.put_frame(data)
                 await ws.send_json({"type": "ack", "seq": frame.seq})

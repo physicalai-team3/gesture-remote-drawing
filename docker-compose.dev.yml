@@ -1,0 +1,7 @@
+# 팀원 2 개발용: B·C 포트를 호스트에 연다 (A 없이 tools/replay_landmarks.py 로 직접 호출)
+#   docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build b-vision c-gesture
+services:
+  b-vision:
+    ports: ["8001:8001"]
+  c-gesture:
+    ports: ["8002:8002"]

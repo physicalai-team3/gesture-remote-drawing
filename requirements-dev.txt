@@ -1,0 +1,7 @@
+# 로컬 테스트·도구용 (컨테이너는 각 서비스의 requirements.txt 사용)
+pydantic>=2.7
+pytest>=8
+httpx>=0.27
+websockets>=12
+opencv-python>=4.9
+numpy

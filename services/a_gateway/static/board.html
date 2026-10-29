@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Gesture Board</title>
+<style>
+  :root { --bg:#f7f5ef; --ink:#1d1d1f; --muted:#6b6b70; --line:#dedad0; --accent:#2a9d8f; --warn:#d1495b; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:14px/1.4 system-ui, sans-serif; height:100vh; display:flex; flex-direction:column; }
+  header { display:flex; gap:8px; align-items:center; padding:8px 12px; border-bottom:1px solid var(--line); flex-wrap:wrap; }
+  header h1 { font-size:16px; margin:0 12px 0 0; }
+  button { border:1px solid var(--line); background:#fff; padding:6px 10px; border-radius:6px; cursor:pointer; }
+  .swatch { width:22px; height:22px; border-radius:50%; border:2px solid #fff; box-shadow:0 0 0 1px var(--line); display:inline-block; vertical-align:middle; }
+  .dot { width:10px; height:10px; border-radius:50%; background:var(--warn); display:inline-block; }
+  .dot.on { background:var(--accent); }
+  main { flex:1; position:relative; overflow:hidden; }
+  canvas { position:absolute; inset:0; width:100%; height:100%; }
+  #board { background:#fff; }
+  /* 페어링 화면: 폰이 연결되기 전까지 그림판을 완전히 가린다 (연결되면 board.js 가 숨김) */
+  #pair { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; background:var(--bg); }
+  #pair .card { background:#fff; border:1px solid var(--line); border-radius:12px; padding:20px; text-align:center; max-width:360px; }
+  #pair img { width:260px; height:260px; image-rendering:pixelated; }
+  #pair code { font-size:12px; word-break:break-all; color:var(--muted); }
+  #hud { position:absolute; left:8px; bottom:8px; font:12px ui-monospace, monospace; background:rgba(255,255,255,.85); padding:6px 8px; border-radius:6px; border:1px solid var(--line); white-space:pre; }
+  .hidden { display:none !important; }
+</style>
+</head>
+<body>
+<header>
+  <h1>✋ Gesture Board</h1>
+  <span class="dot" id="phoneDot"></span><span id="phoneTxt">폰 연결 대기</span>
+  <span style="flex:1"></span>
+  <span class="swatch" id="curColor"></span>
+  <button id="undo">↶ 되돌리기</button>
+  <button id="clear">지우기</button>
+  <button id="save">PNG 저장</button>
+  <label><input type="checkbox" id="mirror" checked> 거울</label>
+  <label><input type="checkbox" id="debug"> 디버그</label>
+  <button id="showQr">QR</button>
+</header>
+<main>
+  <canvas id="board"></canvas>
+  <canvas id="overlay"></canvas>
+  <div id="pair">
+    <div class="card">
+      <h2 style="margin-top:0">폰으로 QR을 스캔하세요</h2>
+      <img id="qr" alt="QR">
+      <p>세션 <b id="sid">…</b></p>
+      <code id="phoneUrl">터널 주소 확인 중…</code>
+      <p style="color:var(--muted)">폰이 연결되면 그림판이 열립니다</p>
+    </div>
+  </div>
+  <div id="hud"></div>
+</main>
+<script src="/static/board.js"></script>
+</body>
+</html>

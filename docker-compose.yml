@@ -1,0 +1,52 @@
+# 구조: docs/01-architecture.md, 환경변수: docs/02-containers.md
+# 호스트에는 A(8000)만 공개한다. B·C는 도커 내부망에서 A만 호출한다.
+name: gesture-remote-drawing
+
+x-health: &health
+  interval: 5s
+  timeout: 3s
+  retries: 5
+  start_period: 10s
+
+services:
+  cloudflared:
+    image: cloudflare/cloudflared:2026.10.5
+    command: tunnel --no-autoupdate --metrics 0.0.0.0:2000 --url http://a-gateway:8000
+    depends_on: [a-gateway]
+    restart: unless-stopped
+
+  a-gateway:
+    build: { context: ., dockerfile: services/a_gateway/Dockerfile }
+    env_file: .env
+    environment:
+      CLOUDFLARED_METRICS: http://cloudflared:2000
+      B_URL: http://b-vision:8001
+      C_URL: http://c-gesture:8002
+    ports:
+      - "8000:8000"          # 그림판: http://localhost:8000
+    depends_on:
+      b-vision: { condition: service_healthy }
+      c-gesture: { condition: service_healthy }
+    healthcheck:
+      <<: *health
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=2)"]
+    restart: unless-stopped
+
+  b-vision:
+    build: { context: ., dockerfile: services/b_vision/Dockerfile }
+    env_file: .env
+    environment:
+      # 셸에서 VISION_BACKEND=mock docker compose up 으로 덮어쓸 수 있게
+      VISION_BACKEND: ${VISION_BACKEND:-mediapipe}
+    healthcheck:
+      <<: *health
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8001/health', timeout=2)"]
+    restart: unless-stopped
+
+  c-gesture:
+    build: { context: ., dockerfile: services/c_gesture/Dockerfile }
+    env_file: .env
+    healthcheck:
+      <<: *health
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8002/health', timeout=2)"]
+    restart: unless-stopped

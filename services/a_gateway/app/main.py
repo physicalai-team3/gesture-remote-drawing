@@ -23,6 +23,7 @@ from .sessions import Session, SessionStore
 from .tunnel import Tunnel
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
+logging.getLogger("httpx").setLevel(logging.WARNING)  # 요청마다 찍히는 INFO 로그(터널 조회, B·C 호출) 숨김
 log = logging.getLogger("a-gateway")
 
 PUBLIC_URL = os.getenv("PUBLIC_URL") or None

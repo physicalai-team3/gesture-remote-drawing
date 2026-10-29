@@ -8,6 +8,7 @@ POSES = {
     "color": (False, True, True, True, False),
     "erase": (True, True, True, True, True),
     "clear": (False, False, False, False, False),
+    "zoom": (True, True, False, False, False),  # 엄지를 옆으로 벌린 핀치 (rules.thumb_spread 로 draw 와 구분)
 }
 
 # 손가락별 MCP 의 x 오프셋 (손 크기 단위). 엄지는 바깥쪽으로 펴진다

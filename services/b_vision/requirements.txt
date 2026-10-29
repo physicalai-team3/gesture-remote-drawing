@@ -2,4 +2,5 @@ fastapi>=0.115
 uvicorn[standard]>=0.30
 pydantic>=2.7
 numpy<2
-mediapipe>=0.10.18,<0.11
+# 데모 전까지 고정 (1.x 는 Tasks Python API 이름 규칙이 바뀜). cv2 는 mediapipe 의 opencv-contrib-python 으로 들어온다
+mediapipe==0.10.35

@@ -55,6 +55,8 @@ mock B는 **검지가 원을 그리고 3초마다 draw ↔ hover로 바뀌는** 
 docker compose -f docker-compose.yml -f docker-compose.dev.yml up -d --build b-vision c-gesture
 python tools/replay_landmarks.py --src 0      # 웹캠 → B → C, 랜드마크 뼈대와 그림을 창에 표시
 curl -X POST --data-binary @hand.jpg -H "Content-Type: image/jpeg" localhost:8001/v1/detect
+python tools/bench_vision.py --src hand.mp4   # infer_ms p50·p95, 검출률, 첫 프레임 지연 (--sessions 2 = 폰 2대)
+cd services/b_vision && python -m pytest tests  # mock 으로 계약 테스트 (MODEL_PATH 를 주면 실제 MediaPipe 테스트도)
 ```
 
 ### 팀원 3 (C + board) — A·B 없이

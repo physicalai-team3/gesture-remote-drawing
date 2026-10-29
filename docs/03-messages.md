@@ -200,6 +200,7 @@ board(PC)        A gateway                  phone            B vision        C g
 - `landmarks[i]` = `[x, y, z]`, x·y는 이미지 기준 0~1, z는 손목 기준 상대 깊이 (작을수록 카메라에 가까움).
 - `handedness`는 MediaPipe 원본 값 그대로 (전면 카메라면 좌우가 반대로 나옴 — C가 처리).
 - 디코드 실패 `400`, 내부 오류 `500`.
+- `infer_ms`는 **순수 추론 시간**이다 (다른 세션 프레임을 기다린 시간·디코드 제외). 세부 시간은 응답 헤더 `Server-Timing: decode;dur=…, wait;dur=…, infer;dur=…`에 있다 (A는 읽지 않아도 된다).
 
 ### `DELETE /v1/sessions/{session}` → `204`
 세션 종료 시 A가 호출. B는 해당 MediaPipe 인스턴스 해제.

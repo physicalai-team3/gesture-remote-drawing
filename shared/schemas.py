@@ -8,8 +8,8 @@ from pydantic import BaseModel, Field
 CONTRACT_VERSION = 1
 NUM_LANDMARKS = 21
 
-Gesture = Literal["draw", "hover", "erase", "color", "clear", "none"]
-CursorMode = Literal["draw", "hover", "erase", "idle"]
+Gesture = Literal["draw", "hover", "erase", "color", "clear", "zoom", "none"]
+CursorMode = Literal["draw", "hover", "erase", "zoom", "idle"]
 Tool = Literal["pen", "eraser"]
 
 DEFAULT_PALETTE = ["#111111", "#e53935", "#1e88e5", "#43a047", "#fdd835"]
@@ -89,7 +89,14 @@ class Clear(BaseModel):
     op: Literal["clear"] = "clear"
 
 
-Command = Annotated[Union[StrokeBegin, StrokePoint, StrokeEnd, SetColor, Clear], Field(discriminator="op")]
+class Zoom(BaseModel):
+    op: Literal["zoom"] = "zoom"
+    factor: float  # 직전 zoom 명령 대비 배율 변화 (>1 확대, <1 축소). board 가 누적·범위 제한
+    x: float  # 확대 중심 (그림판 화면 기준 0~1)
+    y: float
+
+
+Command = Annotated[Union[StrokeBegin, StrokePoint, StrokeEnd, SetColor, Clear, Zoom], Field(discriminator="op")]
 
 
 class InterpretResponse(BaseModel):

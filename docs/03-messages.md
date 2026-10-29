@@ -158,10 +158,12 @@ board(PC)        A gateway                  phone            B vision        C g
 | `stroke_end` | `id` | 획 종료 (undo 스택에 push) |
 | `set_color` | `color` | 현재 색 표시 변경 (다음 획부터 적용) |
 | `clear` | — | 캔버스 전체 지우기 |
+| `zoom` | `factor`, `x`, `y` | 화면 확대·축소. `factor`는 **직전 zoom 대비** 배율 변화(>1 확대, <1 축소), `(x, y)`는 확대 중심(화면 기준 0~1). 누적 배율의 범위 제한(1~4배)은 board가 한다 |
 
 - 한 `frame_result`에 여러 명령이 올 수 있다 (예: `stroke_end` → `stroke_begin`). **배열 순서대로 실행**.
 - `id`는 세션 내 단조 증가 정수. board는 모르는 `id`의 `stroke_point`는 무시한다.
-- 커서(`cursor`)는 명령이 아니라 **매 프레임의 현재 위치**다. `mode`: `draw` | `hover` | `erase` | `idle`.
+- 커서(`cursor`)는 명령이 아니라 **매 프레임의 현재 위치**다. `mode`: `draw` | `hover` | `erase` | `zoom` | `idle`.
+- 모든 좌표(`stroke_*`, `cursor`, `zoom`)는 **화면 기준**이다. 확대된 상태라면 board가 화면 좌표 → 그림 좌표로 변환해서 저장한다. C는 확대 상태를 모른다.
 - `width`는 그림판 짧은 변 기준 **px (1000px 환산)** — board가 실제 크기에 맞춰 스케일.
 
 ---
@@ -231,7 +233,7 @@ board(PC)        A gateway                  phone            B vision        C g
   "debug": {"fingers": [false, true, false, false, false], "raw_gesture": "draw", "stable_count": 5}
 }
 ```
-- `gesture`: `draw` | `hover` | `erase` | `color` | `clear` | `none`
+- `gesture`: `draw` | `hover` | `erase` | `color` | `clear` | `zoom` | `none`
 - `cursor`는 손이 없으면 `null`.
 - `debug`는 자유 형식 (board 디버그 패널에 그대로 표시).
 

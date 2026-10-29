@@ -29,6 +29,9 @@ docker compose up -d --build
 | ✋ 다섯 손가락 | 지우개 |
 | 🤟 검지 + 중지 + 약지 | 다음 색 |
 | ✊ 주먹 1.5초 유지 | 전체 지우기 |
+| 🤏 엄지를 옆으로 벌리고 검지와 핀치 | 확대·축소 (벌리면 확대, 오므리면 축소, 1~4배) |
+
+> 그릴 때는 엄지를 접으세요. 엄지를 옆으로 벌리면 핀치(확대·축소)로 인식합니다. 키보드 `0`을 누르면 원래 크기로 돌아갑니다.
 
 ---
 
@@ -74,7 +77,7 @@ flowchart LR
 |---|---|---|---|---|
 | **A gateway** | 사람(폰·PC)과 만나는 유일한 창구 | 폰 JPEG → B·C 호출 → 그림판에 `frame_result` | 세션, WS 연결, 최신 프레임 슬롯, 통계 | 8000 (호스트 공개) |
 | **B vision** | "보는 것"만: 이미지 → 손 좌표 | JPEG → 21개 랜드마크 (0~1 정규화) | 세션별 MediaPipe 추적 인스턴스 | 8001 (내부) |
-| **C gesture** | "판단"만: 손 좌표 → 그리기 명령 | 랜드마크 → 제스처 + `stroke_*`/`clear`/`set_color` | 세션별 필터·디바운스·현재 획 | 8002 (내부) |
+| **C gesture** | "판단"만: 손 좌표 → 그리기 명령 | 랜드마크 → 제스처 + `stroke_*`/`clear`/`set_color`/`zoom` | 세션별 필터·디바운스·현재 획 | 8002 (내부) |
 
 **핵심 설계 결정**
 - **A가 조율**: A가 B와 C를 차례로 부릅니다. B와 C는 서로를 몰라서 각자 단독으로 테스트할 수 있습니다. 슬라이드의 A→B→C→A 화살표는 이 데이터 흐름을 나타냅니다.
@@ -102,7 +105,7 @@ flowchart LR
 | board ↔ A | WS `/ws/board?s=` | ← `session`, `phone{connected}`, **`frame_result`**, `stats` / → `config`, `reset` |
 | A → B | `POST /v1/detect` | body = JPEG, 헤더 `X-Session` `X-Seq` `X-Ts-Ms` → `DetectResponse{hands[{landmarks[21]}]}` |
 | A → C | `POST /v1/interpret` | `InterpretRequest{session, seq, t_ms, hands, config}` → `InterpretResponse{gesture, cursor, commands}` |
-| C → board (A가 전달) | `commands[]` | `stroke_begin` / `stroke_point` / `stroke_end` / `set_color` / `clear` |
+| C → board (A가 전달) | `commands[]` | `stroke_begin` / `stroke_point` / `stroke_end` / `set_color` / `clear` / `zoom` |
 
 **흐름 제어**: 폰은 ack를 받지 못한 프레임이 2개면 캡처를 건너뜁니다. A는 세션마다 최신 프레임 1칸만 보관합니다.
 
@@ -138,6 +141,64 @@ python tools/make_samples.py && python -m pytest tests
 ---
 
 ## 폴더 구조
+
+```
+gesture-remote-drawing/
+├── README.md
+├── docker-compose.yml          # 전체 실행: a-gateway · b-vision · c-gesture · cloudflared
+├── docker-compose.dev.yml      # 개발용: B·C 포트를 호스트에 공개 (A 없이 직접 호출)
+├── .env.example                # 환경변수 예시 → cp .env.example .env
+├── requirements-dev.txt        # 호스트에서 테스트·도구 실행용 패키지
+│
+├── docs/
+│   ├── 01-architecture.md      # 전체 구조와 설계 결정
+│   ├── 02-containers.md        # 컨테이너별 역할 · 제스처 규칙표 · 환경변수
+│   ├── 03-messages.md          # 메시지 계약 (REST · WebSocket · HTTP · 그리기 명령)
+│   └── 04-team-plan.md         # 3인 분업 · 타임라인 · Git 규칙
+│
+├── shared/                     # 세 컨테이너가 같이 쓰는 코드 (각 이미지에 복사됨)
+│   ├── schemas.py              # 메시지 계약 (pydantic). 03-messages.md 와 항상 함께 수정
+│   ├── fake_hand.py            # 가짜 손 랜드마크 21개 생성 (mock B · C 테스트 · 샘플)
+│   └── samples/                # 계약 예제 JSON (tools/make_samples.py 로 생성)
+│
+├── services/
+│   ├── a_gateway/              # Container A — 웹/보안 서버 :8000
+│   │   ├── app/
+│   │   │   ├── main.py         # REST(/api/sessions, QR) · WebSocket(/ws/phone, /ws/board)
+│   │   │   ├── sessions.py     # 세션 · 페어링 토큰 · 최신 프레임 슬롯 · 통계
+│   │   │   ├── pipeline.py     # 프레임마다 B → C 호출 후 그림판에 frame_result 전송
+│   │   │   └── tunnel.py       # cloudflared 터널 주소 조회 (QR 에 넣을 HTTPS 주소)
+│   │   └── static/
+│   │       ├── phone.html      # 폰 페이지: 카메라 → JPEG → WebSocket
+│   │       ├── board.html      # 그림판 레이아웃 · QR 화면
+│   │       └── board.js        # 그리기 명령 실행 · 곡선 보간 · 확대/축소 · 커서 · undo
+│   │
+│   ├── b_vision/               # Container B — 영상 분석 엔진 :8001
+│   │   └── app/
+│   │       ├── main.py         # POST /v1/detect (JPEG → 손 랜드마크)
+│   │       └── detector.py     # MediaPipe Hand Landmarker / mock(가짜 손)
+│   │
+│   └── c_gesture/              # Container C — 동작 인식 엔진 :8002
+│       ├── app/
+│       │   ├── main.py         # POST /v1/interpret · 세션 reset/삭제 · 오래된 세션 정리
+│       │   ├── rules.py        # 손가락 펴짐 비율 · 엄지 벌어짐 · 핀치 거리 → 제스처 분류
+│       │   ├── filters.py      # One Euro 필터 (커서 · 핀치 떨림 제거)
+│       │   └── state.py        # 세션별 상태 머신: 디바운스 → 커서 → 획 · 확대 · 전체 지우기 명령
+│       └── tests/
+│           ├── test_rules.py   # 제스처 판정 · 상태 머신 · 확대/축소 단위 테스트
+│           └── test_api.py     # HTTP API 테스트 (계약 샘플 사용)
+│
+├── tests/
+│   └── test_samples.py         # shared/samples 가 스키마에 맞는지 검사
+│
+└── tools/                      # 호스트에서 실행하는 개발 도구
+    ├── fake_phone.py           # 폰 없이 A 에 프레임 송출
+    ├── check_a.py              # A 통합 체크리스트 자동 점검
+    ├── replay_landmarks.py     # 웹캠 → B → C 직접 호출, 결과를 창에 표시
+    └── make_samples.py         # shared/samples/*.json 생성
+```
+
+각 서비스 폴더에는 `Dockerfile`과 `requirements.txt`가 있습니다 (트리에서는 생략).
 
 | 경로 | 내용 | 담당 |
 |---|---|---|

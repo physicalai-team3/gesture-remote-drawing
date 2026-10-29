@@ -6,6 +6,7 @@ import io
 import json
 import logging
 import os
+import secrets
 import time
 from contextlib import asynccontextmanager, suppress
 from pathlib import Path
@@ -87,6 +88,29 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title="a-gateway", lifespan=lifespan)
+
+# ── 터널(인터넷) 경유 요청은 폰 경로만 허용 (docs/01-architecture.md §6) ──
+# 그림판·세션 API 가 열려 있으면 세션 ID 만으로 /api/sessions/{s} 에서 페어링 토큰을 받아낼 수 있다.
+# cloudflared 를 거친 요청에는 Cloudflare 엣지가 붙인 Cf-Connecting-Ip 헤더가 있다 (외부에서 제거 불가).
+TUNNEL_ALLOWED = {"/phone", "/ws/phone", "/health"}
+
+
+class LocalOnlyMiddleware:
+    def __init__(self, app):
+        self.app = app
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] in ("http", "websocket") and scope["path"] not in TUNNEL_ALLOWED \
+                and any(k == b"cf-connecting-ip" for k, _ in scope["headers"]):
+            if scope["type"] == "http":
+                await Response("localhost only", status_code=403)(scope, receive, send)
+            else:
+                await send({"type": "websocket.close", "code": 4403})
+            return
+        await self.app(scope, receive, send)
+
+
+app.add_middleware(LocalOnlyMiddleware)
 
 
 # ── 정적 페이지 ──
@@ -177,7 +201,7 @@ async def ws_phone(ws: WebSocket, s: str, t: str = ""):
     if not sess:
         await ws.close(code=4404)
         return
-    if t != sess.token:
+    if not secrets.compare_digest(t.encode(), sess.token.encode()):
         await ws.close(code=4401)
         return
     if sess.phone is not None:  # 세션당 폰 1대: 이전 폰을 끊는다

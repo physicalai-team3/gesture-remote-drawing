@@ -5,9 +5,13 @@
 """
 from __future__ import annotations
 
+import time
 from typing import Optional
 
 import httpx
+
+# 주소를 찾기 전에는 1초마다, 찾은 뒤에는 cloudflared 재시작으로 주소가 바뀌는지만 가끔 확인
+FOUND_INTERVAL_S = 30.0
 
 
 class Tunnel:
@@ -16,6 +20,7 @@ class Tunnel:
         self.metrics_url = metrics_url.rstrip("/")
         self.discovered: Optional[str] = None
         self.ok = False
+        self.next_check = 0.0
 
     @property
     def public_url(self) -> Optional[str]:
@@ -30,12 +35,15 @@ class Tunnel:
         if self.env_url:
             self.ok = True
             return False
+        if time.monotonic() < self.next_check:
+            return False
         try:
             r = await client.get(f"{self.metrics_url}/quicktunnel", timeout=2.0)
             host = r.json().get("hostname") if r.status_code == 200 else None
         except (httpx.HTTPError, ValueError):
             host = None
         self.ok = bool(host)
+        self.next_check = time.monotonic() + FOUND_INTERVAL_S if host else 0.0
         url = f"https://{host}" if host else None
         if url and url != self.discovered:
             self.discovered = url

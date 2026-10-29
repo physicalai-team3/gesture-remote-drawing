@@ -43,7 +43,7 @@ class Pipeline:
                 det = DetectResponse.model_validate(r.json())
             except Exception as e:  # 실패한 프레임은 건너뛴다 (획을 끊지 않음)
                 s.stats.errors_b += 1
-                log.warning("B 실패 session=%s seq=%d: %s", s.id, frame.seq, e)
+                log.warning("B 실패 session=%s seq=%d: %r", s.id, frame.seq, e)
                 continue
             t1 = time.perf_counter()
 
@@ -55,7 +55,7 @@ class Pipeline:
                 res = InterpretResponse.model_validate(r.json())
             except Exception as e:
                 s.stats.errors_c += 1
-                log.warning("C 실패 session=%s seq=%d: %s", s.id, frame.seq, e)
+                log.warning("C 실패 session=%s seq=%d: %r", s.id, frame.seq, e)
                 continue
             t2 = time.perf_counter()
 
@@ -77,7 +77,7 @@ class Pipeline:
             r.raise_for_status()
             cmds = ResetResponse.model_validate(r.json()).commands
         except Exception as e:
-            log.warning("C reset 실패 session=%s: %s", s.id, e)
+            log.warning("C reset 실패 session=%s: %r", s.id, e)
             return
         if cmds:
             await s.broadcast({"type": "frame_result", "seq": -1, "gesture": "none", "cursor": None,

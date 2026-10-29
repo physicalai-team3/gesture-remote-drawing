@@ -94,6 +94,11 @@ board(PC)        A gateway                  phone            B vision        C g
 ```
 폰은 ack를 받지 못한 프레임이 `max_inflight`개면 다음 캡처를 건너뛴다 → 네트워크 큐가 쌓이지 않는다.
 
+프레임이 `MAX_FRAME_BYTES`를 넘으면 A는 처리하지 않고 `seq` 없이 ack를 보낸다. 폰은 일반 ack처럼 inflight만 줄이면 된다.
+```json
+{"type": "ack", "seq": null, "rejected": "too_large"}
+```
+
 **`stats`** (1초마다)
 ```json
 {"type": "stats", "fps_in": 14.8, "fps_done": 14.1, "dropped": 3, "latency_ms": 42.0, "hand": true}
